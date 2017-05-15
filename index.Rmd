@@ -1,0 +1,7 @@
+---
+title: "sentiment analysis"
+author: "GAN LING"
+date: "2017/5/15"
+output: html_document
+---
+
