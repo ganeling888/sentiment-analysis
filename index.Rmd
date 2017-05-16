@@ -5,3 +5,98 @@ date: "2017/5/15"
 output: html_document
 ---
 
+load the require packages first(before that you need to ensure that your computer has installed these packages)
+
+```{r}
+library(ggplot2)
+library(tm)
+library(NLP)
+library(RColorBrewer)
+library(wordcloud)
+library(syuzhet)
+```
+
+get the data out
+
+```{r}
+texts <- readLines("comments on Friedman book.txt")
+```
+
+create the corpus
+
+```{r}
+docs <- Corpus(VectorSource(texts))
+```
+
+clean the data
+
+```{r}
+# define the function to deal with
+trans <- content_transformer(function(x,pattern) gsub(pattern," ",x))
+# clean the data
+docs <- tm_map(docs,trans,"/|@|\\|")
+# let the data to lower case
+docs <- tm_map(docs,content_transformer(tolower))
+# remove numbers
+docs <- tm_map(docs,removeNumbers)
+# remove all the stopwords in english
+docs <- tm_map(docs,removeWords,stopwords("english"))
+# remove punctuation
+docs <- tm_map(docs,removePunctuation)
+# let the whitespace among words limit to 1
+docs <- tm_map(docs,stripWhitespace)
+```
+
+create document term matrix
+
+```{r}
+# tern matrix
+dtm <- TermDocumentMatrix(docs)
+mat <- as.matrix(dtm)
+# sort the sum of words count according to decreasing order
+v <- sort(rowSums(mat),decreasing = TRUE)
+
+# transfer to data frame
+d <- data.frame(word = names(v), freq = v)
+head(d,20)
+```
+
+generate the wordcloud
+
+```{r}
+set.seed(as.numeric(as.Date("2017-05-15")))
+wordcloud(words = d$word, freq = d$freq, min.freq = 1,
+          max.words = 200, random.order = FALSE, rot.per = 0.35,
+          colors=brewer.pal(8,"Dark2"))
+```
+
+test the texts using sentiment words
+
+```{r}
+sentiment <- get_nrc_sentiment (texts)
+text <- cbind(texts,sentiment)
+```
+
+count the sentiment words by category
+
+```{r}
+TotalSentiment <- data.frame(colSums(text[,c(2:ncol(text))]))
+names(TotalSentiment) <- "count"
+TotalSentiment <- cbind("sentiment" = rownames(TotalSentiment), TotalSentiment)
+rownames(TotalSentiment) <- NULL
+```
+
+using ggplot to draw the total sentiment score of all texts
+
+```{r}
+ggplot(data = TotalSentiment, aes(x=sentiment, y = count)) +
+  geom_bar(aes(fill = sentiment),stat = "identity") +
+  theme(legend.position = "none") +
+  xlab("Sentiment") + ylab("Total Count") +ggtitle("Total Sentiment Score")
+```
+
+=======================
+
+*we can find something from the picture that the sentiment `positive` has the biggest frequency*
+
+=======================
